@@ -1,0 +1,16 @@
+# 运行产物 / 截图与录屏（体积大，不进仓库，也不进 Pages）
+shots/
+*.webm
+*.mp4
+
+# 本地工作记录
+.workbuddy/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 临时探针脚本
+tools/_*.js

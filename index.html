@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TreeGraphVis · 教学级树与图算法可视化平台</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+        <g fill="none" stroke="#4F46E5" stroke-width="1.6">
+          <line x1="13" y1="5" x2="6" y2="12"/><line x1="13" y1="5" x2="20" y2="12"/>
+          <line x1="6" y1="12" x2="3.5" y2="20"/><line x1="6" y1="12" x2="10" y2="20"/>
+          <line x1="20" y1="12" x2="17" y2="20"/><line x1="20" y1="12" x2="23" y2="20"/>
+        </g>
+        <g fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.5">
+          <circle cx="13" cy="5" r="3.2"/><circle cx="6" cy="12" r="2.8"/><circle cx="20" cy="12" r="2.8"/>
+          <circle cx="3.5" cy="20" r="2.4"/><circle cx="10" cy="20" r="2.4"/><circle cx="17" cy="20" r="2.4"/><circle cx="23" cy="20" r="2.4"/>
+        </g>
+      </svg>
+      <div class="brand-txt">
+        <b>TreeGraphVis</b>
+        <span>树与图算法 · 教学级交互可视化</span>
+      </div>
+    </div>
+
+    <div class="picker">
+      <select id="algoSelect" title="选择算法"></select>
+      <select id="presetSelect" title="一键教学预设"></select>
+      <div class="scale-box" title="自定义演示规模：输入结点数后点「生成」">
+        <span>结点</span>
+        <input id="scaleInput" type="number" min="3" max="64" step="1" value="16" inputmode="numeric" aria-label="结点数量">
+        <button id="btnScale">生成</button>
+      </div>
+    </div>
+
+    <div class="tools">
+      <button class="btn" id="btnTheme" title="切换深色 / 浅色">
+        <span class="ico">◐</span><span>深色</span>
+      </button>
+      <button class="btn" id="btnCompare" title="同屏双算法对比">
+        <span class="ico">◫</span><span>对比</span>
+      </button>
+      <button class="btn" id="btnEditor" title="自由建图 / 竞赛数据导入">
+        <span class="ico">✎</span><span>建图</span>
+      </button>
+      <div class="dropdown">
+        <button class="btn" id="btnExport" title="导出教学素材">
+          <span class="ico">⤓</span><span>导出</span>
+        </button>
+        <div class="menu" id="exportMenu">
+          <button data-act="svg">矢量 SVG（可插入 PPT）</button>
+          <button data-act="png">4K 透明背景 PNG</button>
+          <button data-act="video">整段演示 WebM 视频</button>
+          <button data-act="mp4">整段演示 MP4 视频</button>
+          <button data-act="gif">整段演示 GIF 动图</button>
+          <button data-act="copy">复制当前帧解说</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="workbench" id="workbench">
+    <section class="canvas-pane" id="canvasPane">
+      <div class="stage-wrap">
+        <div id="stageA" class="stage"></div>
+        <div id="stageB" class="stage hidden"></div>
+      </div>
+
+      <div class="canvas-overlay top-left">
+        <div class="legend" id="legend">
+          <span class="lg"><i class="sw st-default"></i>Default 未访问</span>
+          <span class="lg"><i class="sw st-active"></i>Active 焦点</span>
+          <span class="lg"><i class="sw st-frontier"></i>Frontier 待处理</span>
+          <span class="lg"><i class="sw st-visited"></i>Visited 已确定</span>
+          <span class="lg"><i class="sw st-path"></i>Path 结果</span>
+          <span class="lg"><i class="sw st-conflict"></i>Conflict 冲突</span>
+        </div>
+      </div>
+
+      <div class="canvas-overlay top-right">
+        <div class="canvas-tools">
+          <button class="mini" id="btnZoomIn" title="放大">＋</button>
+          <button class="mini" id="btnZoomOut" title="缩小">－</button>
+          <button class="mini" id="btnFit" title="适配画布">⤢</button>
+          <button class="mini" id="btnRelayout" title="重新布局（清除手动拖动）">↻</button>
+          <button class="mini" id="btnNil" title="红黑树 NIL 哨兵：显示 / 隐藏">NIL</button>
+          <button class="mini" id="btnResid" title="残量网络视图（网络流算法：正向剩余 c−f / 反向可退 f）">残量</button>
+          <select id="layoutSelect" class="mini-select" title="布局引擎">
+            <option value="">自动布局</option>
+            <option value="tree">紧凑树</option>
+            <option value="force">力导向</option>
+            <option value="layered">分层 DAG</option>
+            <option value="bipartite">二分双列</option>
+            <option value="radial">圆环</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="canvas-overlay bottom-left">
+        <div class="scene-note" id="sceneNote"></div>
+      </div>
+
+      <div class="compare-head hidden" id="compareHead">
+        <div><b id="cmpNameA"></b><span id="cmpNarrA"></span></div>
+        <div><b id="cmpNameB"></b><span id="cmpNarrB"></span></div>
+      </div>
+    </section>
+
+    <section class="right-pane">
+      <div class="pane aux-pane">
+        <div class="pane-head">
+          <span class="pane-title">辅助结构透视</span>
+          <span class="pane-sub" id="auxSub"></span>
+        </div>
+        <div class="pane-body" id="auxPanels"></div>
+      </div>
+      <div class="pane code-pane">
+        <div class="pane-head">
+          <span class="pane-title">伪代码 · 行级追踪</span>
+          <div class="code-tabs" id="codeTabs">
+            <button data-lang="pseudo" class="active">伪代码</button>
+            <button data-lang="cpp">C++</button>
+            <button data-lang="py">Python</button>
+            <button data-lang="java">Java</button>
+          </div>
+          <span class="pane-sub" id="codeSub">教学伪代码</span>
+        </div>
+        <div class="pane-body" id="codeBody">
+          <div id="pseudo" class="pseudo"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="vcr">
+    <div class="narrator">
+      <div class="narr-badge" id="stepBadge">0 / 0</div>
+      <div class="narr-main">
+        <div class="narr-text" id="narration">选择左侧算法开始演示。</div>
+        <div class="narr-vars" id="narrVars"></div>
+      </div>
+      <div class="narr-milestone" id="milestoneTag"></div>
+    </div>
+
+    <div class="timeline-row">
+      <div class="scrub-wrap">
+        <input type="range" id="scrubber" min="0" max="0" value="0" step="1">
+        <div class="milestones" id="milestones"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-group">
+        <button class="ctl" id="btnFirst" title="回到初始状态 (Home)">⏮</button>
+        <button class="ctl" id="btnPrev" title="单步后退 (←)">◀</button>
+        <button class="ctl ctl-main" id="btnPlay" title="播放 / 暂停 (空格)">▶</button>
+        <button class="ctl" id="btnNext" title="单步前进 (→)">▶|</button>
+        <button class="ctl" id="btnLast" title="跳至结束 (End)">⏭</button>
+      </div>
+
+      <div class="ctrl-group">
+        <span class="ctrl-label">倍速</span>
+        <select id="speedSelect" class="mini-select">
+          <option value="0.25">0.25x</option>
+          <option value="0.5">0.5x</option>
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+          <option value="3">3x</option>
+          <option value="4">4x</option>
+          <option value="6">6x</option>
+          <option value="8">8x</option>
+          <option value="12">12x</option>
+          <option value="16">16x</option>
+        </select>
+      </div>
+
+      <div class="ctrl-group seg" id="modeSeg">
+        <button data-mode="fine" class="active">细粒度</button>
+        <button data-mode="stage">宏观阶段</button>
+      </div>
+
+      <div class="ctrl-group hint">
+        <span>空格 播放 · ← → 单步 · [ ] 调速 · 拖拽平移 · 滚轮缩放 · 双击节点复位</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- 建图 / 导入弹窗 -->
+<div class="modal-mask hidden" id="editorMask">
+  <div class="modal">
+    <div class="modal-head">
+      <b>自由建图 · 竞赛数据导入</b>
+      <button class="mini" id="editorClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="editor-left">
+        <label class="fl">竞赛格式文本（第一行 n m，随后 m 行 u v [w]）· 或 LeetCode 层序树数组 [1,2,3,null,4]</label>
+        <textarea id="ioText" spellcheck="false">6 8
+1 2 7
+1 3 9
+1 6 14
+2 3 10
+2 4 15
+3 4 11
+3 6 2
+5 6 9</textarea>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="ioDirected" checked> 有向图</label>
+          <label class="chk"><input type="checkbox" id="ioWeighted" checked> 带权</label>
+          <label class="chk"><input type="checkbox" id="ioZeroBased"> 0 基编号</label>
+        </div>
+        <div class="btns">
+          <button class="btn primary" id="ioParse">解析并预览</button>
+          <button class="btn" id="ioApply">用此图运行当前算法</button>
+        </div>
+        <div class="io-msg" id="ioMsg"></div>
+      </div>
+      <div class="editor-right">
+        <div class="fl">鼠标建图</div>
+        <ul class="tips">
+          <li>双击空白处 → 新建节点</li>
+          <li>依次点击两个节点 → 连边（弹窗输入权重）</li>
+          <li>双击边 → 修改权重；右键节点 / 边 → 删除</li>
+          <li>勾选「有向图」即时切换箭头方向</li>
+          <li>粘贴 [1,2,3,null,4] → 直接生成一棵二叉树</li>
+        </ul>
+        <div class="mini-stage" id="editorStage"></div>
+        <div class="row">
+          <button class="btn" id="editClear">清空</button>
+          <button class="btn" id="editUse">用此图运行当前算法</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/lib/geom.js"></script>
+<script src="js/lib/layouts.js"></script>
+<script src="js/lib/gif.js"></script>
+<script src="js/core/protocol.js"></script>
+<script src="js/core/render.js"></script>
+<script src="js/core/panels.js"></script>
+<script src="js/core/player.js"></script>
+<script src="js/core/scale.js"></script>
+<script src="js/algorithms/trees_basic.js"></script>
+<script src="js/algorithms/trees_balanced.js"></script>
+<script src="js/algorithms/trees_multiway.js"></script>
+<script src="js/algorithms/trees_heap_dsu.js"></script>
+<script src="js/algorithms/trees_string.js"></script>
+<script src="js/algorithms/graphs_search.js"></script>
+<script src="js/algorithms/graphs_shortest.js"></script>
+<script src="js/algorithms/graphs_mst_dag.js"></script>
+<script src="js/algorithms/graphs_connect.js"></script>
+<script src="js/algorithms/graphs_flow_match.js"></script>
+<script src="js/algorithms/trees_heaps.js"></script>
+<script src="js/algorithms/trees_adv.js"></script>
+<script src="js/algorithms/trees_more_a.js"></script>
+<script src="js/algorithms/trees_more_b.js"></script>
+<script src="js/algorithms/trees_more_c.js"></script>
+<script src="js/algorithms/trees_more_d.js"></script>
+<script src="js/algorithms/graphs_extra.js"></script>
+<script src="js/algorithms/graphs_more_a.js"></script>
+<script src="js/algorithms/graphs_more_b.js"></script>
+<script src="js/algorithms/trees_gap.js"></script>
+<script src="js/algorithms/trees_lca_all.js"></script>
+<script src="js/algorithms/trees_rb.js"></script>
+<script src="js/algorithms/trees_bt.js"></script>
+<script src="js/algorithms/graphs_gap.js"></script>
+<script src="js/data/solutions_1_tree_basic.js"></script>
+<script src="js/data/solutions_2_balanced.js"></script>
+<script src="js/data/solutions_3_multiway.js"></script>
+<script src="js/data/solutions_4_range_lca.js"></script>
+<script src="js/data/solutions_5_strings_search.js"></script>
+<script src="js/data/solutions_6_shortest.js"></script>
+<script src="js/data/solutions_7_mst_dag.js"></script>
+<script src="js/data/solutions_8_connectivity.js"></script>
+<script src="js/data/solutions_9_flow_match.js"></script>
+<script src="js/data/solutions_10_heaps_spatial.js"></script>
+<script src="js/core/ui.js"></script>
+</body>
+</html>
